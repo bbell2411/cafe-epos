@@ -8,7 +8,7 @@ run:
 	python manage.py runserver
 
 test:
-	pytest
+	pytest -v
 
 clean:
 	find . -name "*.pyc" -delete
