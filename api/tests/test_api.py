@@ -9,14 +9,16 @@ def api_client():
     return APIClient()
 @pytest.fixture
 def menu_items():
-    MenuItem.objects.create(name="Flat White", unit_price_p=350, vat_rate_percent=20.0)
-    MenuItem.objects.create(name="Croissant", unit_price_p=280, vat_rate_percent=0.0)
+    items = []
+    items.append(MenuItem.objects.create(name="Flat White", unit_price_p=350, vat_rate_percent=20.0))
+    items.append(MenuItem.objects.create(name="Croissant", unit_price_p=280, vat_rate_percent=0.0))
+    return items
 @pytest.fixture
 def sample_tab():
     return Tab.objects.create(table_number=10, covers=4)
     
 @pytest.mark.django_db
-def test_create_tab(api_client):
+def test_post_tab(api_client):
     payload={
         'table_number': 12,
         'covers': 2
@@ -50,4 +52,39 @@ def test_get_tab_details(api_client):
     response=api_client.get("/api/tabs/999/")
     assert response.status_code==404
     assert response.data["error"]== 'Tab not found'
+    
+@pytest.mark.django_db
+def test_add_tab_item(api_client, menu_items,sample_tab):
+    payload={
+        "menu_item_id": menu_items[0].id, 
+        "qty": 2
+        }
+    response=api_client.post(f"/api/tabs/{sample_tab.id}/items/",payload)
+    assert response.status_code==201
+    assert response.data["menu_item_id"]==menu_items[0].id
+    assert response.data["qty"] == 2
+    sample_tab.refresh_from_db()  
+    assert sample_tab.subtotal_p > 0 
+    assert sample_tab.total_p > 0
+
+@pytest.mark.django_db
+def test_add_tab_item_MISSING_REQUIRED_FIELDS(api_client,sample_tab):
+    payload={
+        "qty": 2
+        }
+    response=api_client.post(f"/api/tabs/{sample_tab.id}/items/",payload)
+    assert response.status_code==400
+    assert response.data["error"]=='menu_item_id is required'
+
+@pytest.mark.django_db
+def test_add_tab_items_404(api_client,sample_tab):
+    payload={
+        "menu_item_id":1000,
+        "qty": 2
+        }
+    response=api_client.post(f"/api/tabs/{sample_tab.id}/items/",payload)
+    assert response.status_code==404
+    assert response.data["error"]=="Menu item not found"
+    
+
     
