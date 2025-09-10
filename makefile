@@ -1,16 +1,18 @@
-setup: 
-	pip install -r requirements.txt
-	python manage.py makemigrations
-	python manage.py migrate
-	python manage.py seed_db
+build:
+	docker-compose build
 
-run:
-	python manage.py runserver
+up:
+	docker-compose up
 
+setup:
+	docker-compose run web python manage.py migrate
+	docker-compose run web python manage.py seed_db
 test:
-	pytest -v
+	docker-compose run web pytest -v
 
+down:
+	docker-compose down
+	
 clean:
 	find . -name "*.pyc" -delete
 	find . -name "__pycache__" -delete
-
