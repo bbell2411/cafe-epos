@@ -81,7 +81,7 @@ class AddTabItemView(APIView):
             menu_item = MenuItem.objects.get(id=menu_item_id)
             
             line_total = menu_item.unit_price_p * qty
-            vat_amount = round(line_total * float(menu_item.vat_rate_percent) / 100)
+            vat_amount = round(line_total * menu_item.vat_rate_percent / 100)
             
             tab_item = TabItem.objects.create(
                 tab=tab,

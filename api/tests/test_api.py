@@ -70,14 +70,13 @@ def test_add_tab_item(api_client, menu_items,sample_tab):
     assert sample_tab.total_p > 0
 
 @pytest.mark.django_db
-def test_add_tab_item_400(api_client,sample_tab, menu_items):
+def test_add_tab_item_400(api_client,sample_tab):
     payload={
-        "menu_item_id": menu_items[0].id,
-        "qty": 0
+        "qty": 2
         }
     response=api_client.post(f"/api/tabs/{sample_tab.id}/items/",payload)
     assert response.status_code==400
-    assert response.data["error"]=='qty must be at least 1'
+    assert response.data["error"]=='menu_item_id is required'
 
 @pytest.mark.django_db
 def test_add_tab_items_404(api_client,sample_tab):
@@ -144,3 +143,22 @@ def test_confirm_payment_intent_402(api_client, sample_tab):
     assert response.data["error"]=='Payment failed'
     assert response.data["reason"]=="Insufficient funds"
     assert sample_tab.status=="OPEN"
+
+@pytest.mark.django_db
+def test_take_payment_idempotent(api_client, sample_tab):
+    sample_tab.total_p = 1500
+    sample_tab.save()
+    
+    pi_response = api_client.post(f'/api/tabs/{sample_tab.id}/payment_intent/')
+    intent_id = pi_response.data['id']
+    
+    first_response = api_client.post(f'/api/tabs/{sample_tab.id}/take_payment/', {
+        'intent_id': intent_id
+    })
+    assert first_response.status_code == 200
+    
+    second_response = api_client.post(f'/api/tabs/{sample_tab.id}/take_payment/', {
+        'intent_id': intent_id
+    })
+    assert second_response.status_code == 400
+    assert second_response.data["error"]=="Tab already paid"
