@@ -1,6 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
-from api.models import MenuItem
+from api.models import MenuItem, Tab
+
 
 @pytest.fixture
 def api_client():
@@ -34,3 +35,14 @@ def test_full_flow(api_client, menu_items):
         'intent_id': intent_id
     })
     assert confirmed_payment.status_code==200
+    
+    # make sure tab is marked as PAID
+    tab=Tab.objects.get(id=tab_id)
+    assert tab.status=="PAID"
+    
+    # ensure idempotency
+    second_response = api_client.post(f'/api/tabs/{tab_id}/take_payment/', {
+        'intent_id': intent_id
+    })
+    assert second_response.status_code == 400
+    assert second_response.data["error"]=="Tab already paid"
