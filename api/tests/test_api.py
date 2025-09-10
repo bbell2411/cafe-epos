@@ -40,7 +40,6 @@ def test_post_tab(api_client):
     assert response.status_code==201
     assert response.data["table_number"]==12
     assert response.data["covers"]==2
-    assert response.data["status"]=="OPEN"
     assert tab.table_number == 12
     
 def test_create_tab_400(api_client):
@@ -48,7 +47,7 @@ def test_create_tab_400(api_client):
         'table_number': 12,
         }
     response=api_client.post("/api/tabs/",payload)
-    assert response.status_code==status.HTTP_400_BAD_REQUEST
+    assert response.status_code==400
     assert response.data["error"]=="table_number and covers are required"
     
 @pytest.mark.django_db

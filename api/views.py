@@ -4,33 +4,26 @@ from rest_framework import status
 from .models import Tab, TabItem, MenuItem, Payment
 from api.payment.gateway import MockGateway
 from django.utils import timezone
+from .serializers import PostTabSerializer, TableDetailSerializer, TabItemResponseSerializer
 
 class PostTabView(APIView):
     def post(self, request):
         
-        table_number=request.data.get('table_number')
-        covers=request.data.get('covers')
-        
-        if table_number is None or covers is None:
-            return Response({
-                    "error":"table_number and covers are required"}, status=400)
-        try:           
-            tab=Tab.objects.create(
-                table_number=int(table_number),
-                covers=int(covers)
-                )
+        serializer = PostTabSerializer(data=request.data)
+
+        if serializer.is_valid():
+            tab = Tab.objects.create(**serializer.validated_data)
             
-            return Response({
-                "id":tab.id,
-                "table_number":tab.table_number,
-                'covers': tab.covers,
-                'status': tab.status
-            },status=status.HTTP_201_CREATED)
+            serializer=PostTabSerializer(tab)
             
-        except Exception as e:
             return Response(
-                {'error': str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    serializer.data,
+                    status=201
+                )
+        else:
+            return Response(
+                {"error":"table_number and covers are required"},
+                status=400
             )
         
 class TabDetailView(APIView):
@@ -38,41 +31,29 @@ class TabDetailView(APIView):
         try:
             tab=Tab.objects.get(id=tab_id)
             
-            all_items=[]
+            serializer = TableDetailSerializer(tab)
             
-            for item in tab.items.all():  
-                all_items.append({
-                    'name': item.menu_item.name,
-                    'qty': item.qty,
-                    'unit_price_p': item.unit_price_p,
-                    'vat_rate_percent': float(item.vat_rate_percent),
-                    'vat_p': item.vat_p,
-                    'line_total_p': item.line_total_p
-                })
-            return Response({
-                'id': tab.id,
-                'items': all_items,
-                'subtotal_p': tab.subtotal_p,
-                'service_charge_p': tab.service_charge_p,
-                'vat_total_p': tab.vat_total_p,
-                'total_p': tab.total_p
-            })
+            return Response(serializer.data)
+        
         except Tab.DoesNotExist:
             return Response({'error': 'Tab not found'}, status=404)
     
 class AddTabItemView(APIView):
     def post(self, request, tab_id):
         
-        menu_item_id = request.data.get('menu_item_id')
-        qty = int(request.data.get('qty'))
         
-        if not menu_item_id:
+        menu_item_id = request.data.get('menu_item_id')
+        qty_string = request.data.get('qty')
+        
+        if menu_item_id is None:
             return Response({'error': 'menu_item_id is required'}, status=400)
         
-        if not qty or qty < 1:
+        if qty_string is None:
             return Response({'error': 'qty must be at least 1'}, status=400)
         
         try:
+            qty=int(qty_string)
+
             tab=Tab.objects.get(id=tab_id)
             
             if tab.status == 'PAID':
@@ -98,11 +79,9 @@ class AddTabItemView(APIView):
             tab.total_p = tab.subtotal_p + tab.service_charge_p + tab.vat_total_p
             tab.save()
             
-            return Response({
-                'id': tab_item.id,
-                'menu_item_id': tab_item.menu_item_id,
-                'qty': tab_item.qty
-            }, status=201)
+            serialzer= TabItemResponseSerializer(tab_item)
+            
+            return Response(serialzer.data, status=201)
     
         except Tab.DoesNotExist:
             return Response({'error': 'Tab not found'}, status=404)
@@ -163,7 +142,6 @@ class TakePaymentView(APIView):
                     status='SUCCEEDED'
                 )
             return Response({'status': 'paid', 'tab_id': tab.id})
-            
         
         except Tab.DoesNotExist:
             return Response({'error': 'Tab not found'}, status=404)
