@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Tab, TabItem, MenuItem, Payment
+from api.payment.gateway import MockGateway
 
 class PostTabView(APIView):
     def post(self, request):
@@ -111,7 +112,26 @@ class AddTabItemView(APIView):
             return Response({'error': 'Menu item not found'}, status=404)
 
 class CreatePaymentIntentView(APIView):
-    pass
+    def post(self, request, tab_id):
+        try:
+            tab=Tab.objects.get(id=tab_id)
+            
+            if tab.status == 'PAID':
+                return Response({'error': 'Tab already paid'}, status=400)
+            if tab.total_p == 0:
+                return Response({'error': 'Cannot pay empty tab'}, status=400)
+            
+            gateway=MockGateway()
+            intent=gateway.create_payment_intent(tab.total_p)
+            return Response({
+                'id': intent['id'],
+                'client_secret': intent['client_secret']
+            }, status=201)
+            
+        except Tab.DoesNotExist:
+            return Response({'error': 'Tab not found'}, status=404)
+            
+    
 
 class TakePaymentView(APIView):
     pass
