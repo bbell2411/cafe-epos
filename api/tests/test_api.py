@@ -44,8 +44,16 @@ def test_get_tab_details(api_client,sample_tab):
     response=api_client.get(f"/api/tabs/{sample_tab.id}/")
     assert response.status_code==200
     assert response.data["id"]==sample_tab.id
-    assert response.data["table_number"]==10
-    assert response.data["covers"]==4
+    assert "subtotal_p" in response.data
+    assert "service_charge_p" in response.data
+    assert "vat_total_p" in response.data
+    assert "total_p" in response.data
+    assert "items" in response.data    
+    
+    
+    
+    
+    
     
 @pytest.mark.django_db
 def test_get_tab_details_400(api_client):

@@ -50,9 +50,6 @@ class TabDetailView(APIView):
                 })
             return Response({
                 'id': tab.id,
-                'table_number': tab.table_number,
-                'covers': tab.covers,
-                'status': tab.status,
                 'items': all_items,
                 'subtotal_p': tab.subtotal_p,
                 'service_charge_p': tab.service_charge_p,
