@@ -143,4 +143,22 @@ def test_confirm_payment_intent_402(api_client, sample_tab):
     assert response.data["error"]=='Payment failed'
     assert response.data["reason"]=="Insufficient funds"
     assert sample_tab.status=="OPEN"
+
+@pytest.mark.django_db
+def test_take_payment_idempotent(api_client, sample_tab):
+    sample_tab.total_p = 1500
+    sample_tab.save()
     
+    pi_response = api_client.post(f'/api/tabs/{sample_tab.id}/payment_intent/')
+    intent_id = pi_response.data['id']
+    
+    first_response = api_client.post(f'/api/tabs/{sample_tab.id}/take_payment/', {
+        'intent_id': intent_id
+    })
+    assert first_response.status_code == 200
+    
+    second_response = api_client.post(f'/api/tabs/{sample_tab.id}/take_payment/', {
+        'intent_id': intent_id
+    })
+    assert second_response.status_code == 400
+    assert second_response.data["error"]=="Tab already paid"
