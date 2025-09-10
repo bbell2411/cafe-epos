@@ -70,4 +70,5 @@ curl -X POST http://localhost:8000/api/tabs/1/take_payment/ \
 - Made sure money is stored as integer pence to avoid decimal issues
 - Mock payment gateway returns success unless intent_id ends with "13" to test error handling.
 - Once a tab is paid, it can't be modified
+- Mock payment gateway accepts any intent_id for simplicity (production would store intent_id and validate)
 
