@@ -75,14 +75,16 @@ WSGI_APPLICATION = 'epos.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+import os
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'epos_db',
-        'USER': 'bellelm',  
-        'PASSWORD': '',  
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.environ.get('DB_NAME', 'epos_db'),
+        'USER': os.environ.get('DB_USER', 'bellelm'), 
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),   
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
