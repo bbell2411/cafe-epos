@@ -141,7 +141,7 @@ class TakePaymentView(APIView):
                     amount_p=tab.total_p,
                     status='SUCCEEDED'
                 )
-            return Response({'status': 'paid', 'tab_id': tab.id})
+            return Response({'status': 'paid'})
         
         except Tab.DoesNotExist:
             return Response({'error': 'Tab not found'}, status=404)
