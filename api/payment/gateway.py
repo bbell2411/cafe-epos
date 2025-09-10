@@ -1,3 +1,4 @@
+from rest_framework.response import Response
 
 class MockGateway:
     def create_payment_intent(self, amount_p:int, currency:str="gbp")->dict:
@@ -8,5 +9,6 @@ class MockGateway:
         }
     def confirm_payment_intent(self, intent_id:str)->dict:
         if intent_id.endswith('13'):
-            return {"status": "failed", "reason": "Insufficient funds"}
+            return{"status": "failed", "reason": "Insufficient funds"}
+        
         return {"id": intent_id, "status": "succeeded"}

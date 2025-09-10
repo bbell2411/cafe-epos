@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Tab, TabItem, MenuItem, Payment
 from api.payment.gateway import MockGateway
+from django.utils import timezone
 
 class PostTabView(APIView):
     def post(self, request):
@@ -12,7 +13,7 @@ class PostTabView(APIView):
         
         if table_number is None or covers is None:
             return Response({
-                    "error":"table_number and covers are required"}, status=status.HTTP_400_BAD_REQUEST)
+                    "error":"table_number and covers are required"}, status=400)
         try:           
             tab=Tab.objects.create(
                 table_number=int(table_number),
@@ -57,7 +58,7 @@ class TabDetailView(APIView):
                 'total_p': tab.total_p
             })
         except Tab.DoesNotExist:
-            return Response({'error': 'Tab not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Tab not found'}, status=404)
     
 class AddTabItemView(APIView):
     def post(self, request, tab_id):
@@ -101,7 +102,7 @@ class AddTabItemView(APIView):
                 'id': tab_item.id,
                 'menu_item_id': tab_item.menu_item_id,
                 'qty': tab_item.qty
-            }, status=status.HTTP_201_CREATED)
+            }, status=201)
     
         except Tab.DoesNotExist:
             return Response({'error': 'Tab not found'}, status=404)
@@ -120,6 +121,7 @@ class CreatePaymentIntentView(APIView):
             
             gateway=MockGateway()
             intent=gateway.create_payment_intent(tab.total_p)
+            
             return Response({
                 'id': intent['id'],
                 'client_secret': intent['client_secret']
@@ -127,8 +129,41 @@ class CreatePaymentIntentView(APIView):
             
         except Tab.DoesNotExist:
             return Response({'error': 'Tab not found'}, status=404)
-            
     
-
 class TakePaymentView(APIView):
-    pass
+    def post(self,request,tab_id):
+        try:
+            tab=Tab.objects.get(id=tab_id)
+            
+            if tab.status=="PAID":
+                return Response({'error': 'Tab already paid'}, status=400)
+            
+            intent_id = request.data.get('intent_id')
+            if not intent_id:
+                return Response({'error': 'intent_id required'}, status=400)
+            
+            gateway = MockGateway()
+            result = gateway.confirm_payment_intent(intent_id)
+            
+            if result["status"]=="failed":
+                return Response({
+                    'error': 'Payment failed',
+                    'reason': result.get('reason')
+                }, status=402)
+                
+                
+            tab.status = 'PAID'
+            tab.closed_at = timezone.now()
+            tab.save()
+                
+            Payment.objects.create(
+                    tab=tab,
+                    payment_intent_id=intent_id,
+                    amount_p=tab.total_p,
+                    status='SUCCEEDED'
+                )
+            return Response({'status': 'paid', 'tab_id': tab.id})
+            
+        
+        except Tab.DoesNotExist:
+            return Response({'error': 'Tab not found'}, status=404)
