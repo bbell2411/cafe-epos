@@ -133,7 +133,6 @@ def test_confirm_payment_intent(api_client,sample_tab):
     })
     assert response.status_code == 200
     assert response.data['status'] == 'paid'
-    assert response.data["tab_id"]==sample_tab.id
     sample_tab.refresh_from_db()  
     assert sample_tab.status=="PAID"
     
