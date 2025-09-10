@@ -5,7 +5,9 @@ from api.models import MenuItem, Tab
 
 @pytest.fixture
 def api_client():
-    return APIClient()
+    client=APIClient()
+    client.defaults['HTTP_X_API_KEY'] = 'demo' 
+    return client
 @pytest.fixture
 def menu_items():
     items = []
