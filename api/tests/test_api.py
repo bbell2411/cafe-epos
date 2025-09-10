@@ -3,7 +3,6 @@ from rest_framework.test import APIClient
 from api.models import Tab, MenuItem
 from rest_framework import status
 
-
 @pytest.fixture
 def api_client():
     return APIClient()
@@ -50,11 +49,6 @@ def test_get_tab_details(api_client,sample_tab):
     assert "total_p" in response.data
     assert "items" in response.data    
     
-    
-    
-    
-    
-    
 @pytest.mark.django_db
 def test_get_tab_details_400(api_client):
     response=api_client.get("/api/tabs/999/")
@@ -96,7 +90,6 @@ def test_add_tab_items_404(api_client,sample_tab):
     
 @pytest.mark.django_db
 def test_create_payment_intent(api_client, sample_tab):
-    #use utils func to calculcate total instead
     sample_tab.total_p = 1500 
     sample_tab.save()    
     
@@ -113,3 +106,41 @@ def test_create_payment_intent_400(api_client,sample_tab):
     
     response=api_client.post(f"/api/tabs/not_id/payment_intent/")
     assert response.status_code==404
+    
+@pytest.mark.django_db
+def test_confirm_payment_intent(api_client,sample_tab):
+    sample_tab.total_p = 1500
+    sample_tab.save()
+    
+    pi_response = api_client.post(f'/api/tabs/{sample_tab.id}/payment_intent/')
+    assert pi_response.status_code == 201
+    intent_id = pi_response.data['id']
+    
+    response = api_client.post(f'/api/tabs/{sample_tab.id}/take_payment/', {
+        'intent_id': intent_id
+    })
+    assert response.status_code == 200
+    assert response.data['status'] == 'paid'
+    assert response.data["tab_id"]==sample_tab.id
+    sample_tab.refresh_from_db()  
+    assert sample_tab.status=="PAID"
+    
+
+@pytest.mark.django_db
+def test_confirm_payment_intent_402(api_client, sample_tab):
+    sample_tab.total_p = 1500
+    sample_tab.save()
+    
+    pi_response = api_client.post(f'/api/tabs/{sample_tab.id}/payment_intent/')
+    assert pi_response.status_code == 201
+    
+    pi_response.data["id"] = "pi_13"
+    
+    response = api_client.post(f'/api/tabs/{sample_tab.id}/take_payment/', {
+        'intent_id': pi_response.data["id"]
+    })
+    assert response.status_code==402
+    assert response.data["error"]=='Payment failed'
+    assert response.data["reason"]=="Insufficient funds"
+    assert sample_tab.status=="OPEN"
+    
