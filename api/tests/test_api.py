@@ -48,7 +48,7 @@ def test_get_tab_details(api_client,sample_tab):
     assert response.data["covers"]==4
     
 @pytest.mark.django_db
-def test_get_tab_details(api_client):
+def test_get_tab_details_400(api_client):
     response=api_client.get("/api/tabs/999/")
     assert response.status_code==404
     assert response.data["error"]== 'Tab not found'
@@ -68,7 +68,7 @@ def test_add_tab_item(api_client, menu_items,sample_tab):
     assert sample_tab.total_p > 0
 
 @pytest.mark.django_db
-def test_add_tab_item_MISSING_REQUIRED_FIELDS(api_client,sample_tab):
+def test_add_tab_item_400(api_client,sample_tab):
     payload={
         "qty": 2
         }
@@ -86,5 +86,22 @@ def test_add_tab_items_404(api_client,sample_tab):
     assert response.status_code==404
     assert response.data["error"]=="Menu item not found"
     
-
+@pytest.mark.django_db
+def test_create_payment_intent(api_client, sample_tab):
+    #use utils func to calculcate total instead
+    sample_tab.total_p = 1500 
+    sample_tab.save()    
     
+    response=api_client.post(f"/api/tabs/{sample_tab.id}/payment_intent/")
+    assert response.status_code==201
+    assert response.status_code == 201
+    assert 'id' in response.data
+    assert 'client_secret' in response.data
+
+@pytest.mark.django_db
+def test_create_payment_intent_400(api_client,sample_tab):
+    sample_tab.total_p = 1500 
+    sample_tab.save() 
+    
+    response=api_client.post(f"/api/tabs/not_id/payment_intent/")
+    assert response.status_code==404
