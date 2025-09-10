@@ -60,7 +60,7 @@ curl -X POST http://localhost:8000/api/tabs/1/payment_intent/ \
 curl -X POST http://localhost:8000/api/tabs/1/take_payment/ \
   -H "X-Api-Key: demo" \
   -H "Content-Type: application/json" \
-  -d '{"intent_id": "pi_abc123"}'
+  -d '{"intent_id": "pi_123"}'
   ```
 ## Notes
 - VAT calculated per line item then rounded to nearest pence
