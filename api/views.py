@@ -49,7 +49,7 @@ class AddTabItemView(APIView):
             return Response({'error': 'menu_item_id is required'}, status=400)
         
         if qty_string is None:
-            return Response({'error': 'qty must be at least 1'}, status=400)
+            return Response({'error': 'qty is required'}, status=400)
         
         try:
             qty=int(qty_string)
